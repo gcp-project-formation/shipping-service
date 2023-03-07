@@ -1,0 +1,40 @@
+steps:
+  # Build the container image
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "gcr.io/formationgcp/${_DEPLOY_VALUE}/${_BRANCH_NAME}",
+        ".",
+      ]
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "gcr.io/formationgcp/${_DEPLOY_VALUE}/${_BRANCH_NAME}:$COMMIT_SHA",
+        ".",
+      ]
+  # Push the container image to Container Registry
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/formationgcp/${_DEPLOY_VALUE}/${_BRANCH_NAME}"]
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "push",
+        "gcr.io/formationgcp/${_DEPLOY_VALUE}/${_BRANCH_NAME}:$COMMIT_SHA",
+      ]
+  - name: "gcr.io/cloud-builders/gsutil"
+    args:
+      ["cp", "-r", "gs://${_BUCKET_NAME}/manifests/prod/${_BRANCH_NAME}", "."]
+  - name: "gcr.io/cloud-builders/gke-deploy"
+    args:
+      - run
+      - --filename=./${_BRANCH_NAME}
+      - --image=gcr.io/formationgcp/${_DEPLOY_VALUE}/${_BRANCH_NAME}
+      - --location=${_LOCATION}
+      - --cluster=${_CLUSTER}
+images:
+  - gcr.io/formationgcp/${_DEPLOY_VALUE}/${_BRANCH_NAME}
+  - gcr.io/formationgcp/${_DEPLOY_VALUE}/${_BRANCH_NAME}:$COMMIT_SHA
